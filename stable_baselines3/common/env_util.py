@@ -2,8 +2,9 @@ import os
 from typing import Any, Callable, Dict, Optional, Type, Union
 
 import gym
+import retro
 
-from stable_baselines3.common.atari_wrappers import AtariWrapper
+from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameSkip
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 
@@ -154,3 +155,121 @@ def make_atari_env(
         vec_env_kwargs=vec_env_kwargs,
         monitor_kwargs=monitor_kwargs,
     )
+
+def make_retro_env(
+    env_id: Union[str, Type[gym.Env]],
+    seed: Optional[int] = None,
+    start_index: int = 0,
+    monitor_dir: Optional[str] = None,
+    monitor_kwargs: Optional[Dict[str, Any]] = None,
+    wrapper_kwargs: Optional[Dict[str, Any]] = None,
+    env_kwargs: Optional[Dict[str, Any]] = None,
+    screen_size: int = 84,
+    terminal_on_life_loss: bool = True,
+    clip_reward: bool = True
+) -> VecEnv:
+    """
+    Create a wrapped, monitored VecEnv for Gym Retro.
+    It is a wrapper around ``make_vec_env`` that includes common preprocessing for Atari games.
+    """
+
+    if wrapper_kwargs is None:
+        wrapper_kwargs = {}
+
+    '''
+    def atari_wrapper(env: gym.Env) -> gym.Env:
+        env = AtariWrapper(env, **wrapper_kwargs)
+        return env
+    '''
+
+    gym_env = gym.envs.spec(env_id)
+    env_id = gym_env.id
+    max_episode_steps = gym_env.max_episode_steps
+    deterministic = not gym_env.nondeterministic
+    repeat_action_probability = 0
+    obs_type=retro.Observations.IMAGE
+
+    # The environments by default choose frameskip number randomly from 2-4 at every step.
+    # That is why we distinguish between frameskip_min and frameskip_max.
+    frameskip_min, frameskip_max = 2, 4
+    # Space Invaders is an exception.
+    if env_id == 'space_invaders':
+        frameskip_min, frameskip_max = 3, 3
+    else:
+        frameskip_min, frameskip_max = 4, 4
+
+    # The longest form of env_id there can be is {env_id}-{ram}{Deterministic/NoFrameskip}-{v{0,4}}.
+    # ram and Deterministic/NoFrameskip are optional, so
+    # first let's check for {Deterministic/NoFrameskip}-{v{0,4}} and delete them 
+    # and update needed parameters.
+
+    # v0 environments have 25% chance of repeating previous action, v4 have 0%.
+
+    # Get Deterministic-v0
+    if 'Deterministic-v0' in env_id:
+        env_id = env_id[:-16]
+        repeat_action_probability = 0.25
+        frameskip_min, frameskip_max = 4, 4
+    
+    # Get Deterministic-v4
+    elif 'Deterministic-v4' in env_id:
+        env_id = env_id[:-16]
+        frameskip_min, frameskip_max = 4, 4
+
+    # Get NoFrameskip-v0
+    elif 'NoFrameskip-v0' in env_id:
+        env_id = env_id[:-14]
+        repeat_action_probability = 0.25
+        frameskip_min, frameskip_max = 1, 1
+
+    # Get NoFrameskip-v4
+    elif 'NoFrameskip-v4' in env_id:
+        env_id = env_id[:-14]
+        frameskip_min, frameskip_max = 1, 1
+
+    # Get v0
+    elif 'v0' in env_id:
+        env_id = env_id[:-3]
+        repeat_action_probability = 0.25
+
+    # Get v4
+    elif 'v4' in env_id:
+        env_id = env_id[:-3]
+
+    # Raise error if none work
+    else:
+        raise('Such environment name does not exist.')
+
+    # Get RAM
+    if 'ram' in env_id:
+        env_id = env_id[:-4]
+        obs_type=retro.Observations.RAM
+
+    # Since we only support Atari, env will have -Atari2600 at the end, which retro requires.
+    env_id+='-Atari2600'
+
+    # The actions must be discrete, but are not by default.
+    env = retro.make(game=env_id, use_restricted_actions=retro.Actions.DISCRETE, obs_type=obs_type)
+
+    if seed is not None:
+        env.seed(seed)
+        env.action_space.seed(seed)
+
+    # Wrap the env in a Monitor wrapper
+    # to have additional training information
+    monitor_path = os.path.join(monitor_dir) if monitor_dir is not None else None
+    # Create the monitor folder if needed
+    if monitor_path is not None:
+        os.makedirs(monitor_dir, exist_ok=True)
+    env = Monitor(env, filename=monitor_path, **monitor_kwargs)
+
+    # Add wrappers to skip frames and limit env time.
+    env = StochasticFrameSkip(env, frameskip_min, frameskip_max, repeat_action_probability)
+    env = gym.wrappers.TimeLimit(env, max_episode_steps)
+
+    if terminal_on_life_loss:
+        env = EpisodicLifeEnv(env)
+    if clip_reward:
+        env = ClipRewardEnv(env)
+
+    return env
