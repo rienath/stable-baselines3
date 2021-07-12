@@ -246,3 +246,44 @@ class AtariWrapper(gym.Wrapper):
             env = ClipRewardEnv(env)
 
         super(AtariWrapper, self).__init__(env)
+
+
+class StochasticFrameSkip(gym.Wrapper):
+    def __init__(self, env, min_n, max_n, stickprob):
+        gym.Wrapper.__init__(self, env)
+        self.min_n = min_n
+        self.max_n = max_n
+        self.stickprob = stickprob
+        self.curac = None
+        self.rng = np.random.RandomState()
+        self.supports_want_render = hasattr(env, "supports_want_render")
+
+    def reset(self, **kwargs):
+        self.curac = None
+        return self.env.reset(**kwargs)
+
+    def step(self, ac):
+        done = False
+        totrew = 0
+        n = self.rng.randint(self.min_n, self.max_n + 1)
+        for i in range(n):
+            # First step after reset, use action
+            if self.curac is None:
+                self.curac = ac
+            # First substep, delay with probability=stickprob
+            elif i==0:
+                if self.rng.rand() > self.stickprob:
+                    self.curac = ac
+            # Second substep, new action definitely kicks in
+            elif i==1:
+                self.curac = ac
+            if self.supports_want_render and i<self.n-1:
+                ob, rew, done, info = self.env.step(self.curac, want_render=False)
+            else:
+                ob, rew, done, info = self.env.step(self.curac)
+            totrew += rew
+            if done: break
+        return ob, totrew, done, info
+
+    def seed(self, s):
+        self.rng.seed(s)
