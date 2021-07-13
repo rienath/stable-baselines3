@@ -173,8 +173,9 @@ def make_retro_env(
     It is a wrapper around ``make_vec_env`` that includes common preprocessing for Atari games.
     """
 
-    if wrapper_kwargs is None:
-        wrapper_kwargs = {}
+    env_kwargs = {} if env_kwargs is None else env_kwargs
+    monitor_kwargs = {} if monitor_kwargs is None else monitor_kwargs
+    wrapper_kwargs = {} if wrapper_kwargs is None else wrapper_kwargs
 
     '''
     def atari_wrapper(env: gym.Env) -> gym.Env:
