@@ -66,6 +66,30 @@ class FireResetEnv(gym.Wrapper):
         return obs
 
 
+class FireResetEnvRetro(gym.Wrapper):
+    """
+    Take action on reset for retro environments that are fixed until firing.
+
+    :param env: the environment to wrap
+    """
+
+    def __init__(self, env: gym.Env):
+        gym.Wrapper.__init__(self, env)
+
+    def reset(self, **kwargs) -> np.ndarray:
+        self.env.reset(**kwargs)
+        # Fire action most likely is BUTTON in retro, which always corresponds 
+        # to action 1.
+        obs, _, done, _ = self.env.step(1)
+        if done:
+            self.env.reset(**kwargs)
+        obs, _, done, _ = self.env.step(2)
+        if done:
+            self.env.reset(**kwargs)
+        return obs
+
+
+
 class EpisodicLifeEnv(gym.Wrapper):
     """
     Make end-of-life == end-of-episode, but only reset on true game over.
