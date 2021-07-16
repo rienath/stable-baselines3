@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 import gym
 import retro
 
-from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameSkip, WarpFrame
+from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameSkip, WarpFrame, FireResetEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 
@@ -241,9 +241,9 @@ def make_retro_env(
         # env will have -Atari2600 suffix, which Retro requires.
         env_id+='-Atari2600'
 
-        return env_id, obs_type, repeat_action_probability, frameskip_min, frameskip_max
+        return env_id, obs_type, repeat_action_probability, max_episode_steps, frameskip_min, frameskip_max
 
-    env_id, obs_type, repeat_action_probability, frameskip_min, frameskip_max = parse_env_name(env_id)
+    env_id, obs_type, repeat_action_probability, max_episode_steps, frameskip_min, frameskip_max = parse_env_name(env_id)
 
     # The actions must be discrete, but are not by default.
     env = retro.make(game=env_id, use_restricted_actions=retro.Actions.DISCRETE, obs_type=obs_type)
@@ -262,6 +262,7 @@ def make_retro_env(
 
     # Add wrappers to skip frames and limit env time.
     env = StochasticFrameSkip(env, frameskip_min, frameskip_max, repeat_action_probability)
+    env = FireResetEnv(env)
     env = WarpFrame(env, width=84, height=84)
     env = gym.wrappers.TimeLimit(env, max_episode_steps)
 
