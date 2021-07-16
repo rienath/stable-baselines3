@@ -43,6 +43,8 @@ def make_vec_env(
     start_index: int = 0,
     monitor_dir: Optional[str] = None,
     wrapper_class: Optional[Callable[[gym.Env], gym.Env]] = None,
+    retro: bool = False,
+    retro_obs_type: Optional[retro.Observations] = retro.Observations.IMAGE,
     env_kwargs: Optional[Dict[str, Any]] = None,
     vec_env_cls: Optional[Type[Union[DummyVecEnv, SubprocVecEnv]]] = None,
     vec_env_kwargs: Optional[Dict[str, Any]] = None,
@@ -78,7 +80,10 @@ def make_vec_env(
     def make_env(rank):
         def _init():
             if isinstance(env_id, str):
-                env = gym.make(env_id, **env_kwargs)
+                env = gym.make(env_id, **env_kwargs) if not retro_bool else retro.make(
+                    game=env_id, 
+                    use_restricted_actions=retro.Actions.DISCRETE, 
+                    obs_type=retro_obs_type)
             else:
                 env = env_id(**env_kwargs)
             if seed is not None:
@@ -166,7 +171,8 @@ def make_retro_env(
     env_kwargs: Optional[Dict[str, Any]] = None,
     screen_size: int = 84,
     terminal_on_life_loss: bool = True,
-    clip_reward: bool = True
+    clip_reward: bool = True,
+    fire_at_the_start: bool = False
 ) -> VecEnv:
     """
     Create a wrapped, monitored VecEnv for Gym Retro.
@@ -262,7 +268,8 @@ def make_retro_env(
 
     # Add wrappers to skip frames and limit env time.
     env = StochasticFrameSkip(env, frameskip_min, frameskip_max, repeat_action_probability)
-    env = FireResetEnv(env)
+    if fire_at_the_start:
+        env = FireResetEnv(env)
     env = WarpFrame(env, width=84, height=84)
     env = gym.wrappers.TimeLimit(env, max_episode_steps)
 
@@ -271,5 +278,5 @@ def make_retro_env(
     #    env = EpisodicLifeEnv(env)
     if clip_reward:
         env = ClipRewardEnv(env)
-
+    
     return env
