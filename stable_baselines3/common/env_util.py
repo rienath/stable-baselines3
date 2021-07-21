@@ -172,7 +172,8 @@ def make_retro_env(
     screen_size: int = 84,
     terminal_on_life_loss: bool = True,
     clip_reward: bool = True,
-    fire_at_the_start: bool = False
+    fire_at_the_start: bool = False,
+    audio: bool = False
 ) -> VecEnv:
     """
     Create a wrapped, monitored VecEnv for Gym Retro.
@@ -267,11 +268,11 @@ def make_retro_env(
     env = Monitor(env, filename=monitor_path, **monitor_kwargs)
 
     # Add wrappers to skip frames and limit env time.
-    env = StochasticFrameSkip(env, frameskip_min, frameskip_max, repeat_action_probability)
-    if fire_at_the_start:
-        env = FireResetEnv(env)
+    env = StochasticFrameSkip(env, frameskip_min, frameskip_max, repeat_action_probability, audio)
     env = WarpFrame(env, width=84, height=84)
     env = gym.wrappers.TimeLimit(env, max_episode_steps)
+    if fire_at_the_start:
+        env = FireResetEnv(env)
 
     # Does not work with retro
     #if terminal_on_life_loss:

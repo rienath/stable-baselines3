@@ -249,14 +249,18 @@ class AtariWrapper(gym.Wrapper):
 
 
 class StochasticFrameSkip(gym.Wrapper):
-    def __init__(self, env, min_n, max_n, stickprob):
+    """
+    Must be used before other wrappers to make sure that no unnecessary computation is done with skipped frames.
+    """
+    def __init__(self, env, step_min, step_max, stickprob, audio=False):
         gym.Wrapper.__init__(self, env)
-        self.min_n = min_n
-        self.max_n = max_n
+        self.step_min = step_min
+        self.step_max = step_max
         self.stickprob = stickprob
         self.curac = None
         self.rng = np.random.RandomState()
         self.supports_want_render = hasattr(env, "supports_want_render")
+        self.audio = audio
 
     def reset(self, **kwargs):
         self.curac = None
@@ -265,16 +269,18 @@ class StochasticFrameSkip(gym.Wrapper):
     def step(self, ac):
         done = False
         totrew = 0
-        n = self.rng.randint(self.min_n, self.max_n + 1)
+        if audio: audio_buffer = list()
+
+        n = self.rng.randint(self.step_min, self.step_max + 1)
         for i in range(n):
             # First step after reset, use action
             if self.curac is None:
                 self.curac = ac
-            # First substep, delay with probability=stickprob
+            # First step not after reset, take same action as in last with stickprob probability or new action if not
             elif i==0:
                 if self.rng.rand() > self.stickprob:
                     self.curac = ac
-            # Second substep, new action definitely kicks in
+            # Second step, new action definitely kicks in
             elif i==1:
                 self.curac = ac
             if self.supports_want_render and i<self.n-1:
@@ -282,8 +288,12 @@ class StochasticFrameSkip(gym.Wrapper):
             else:
                 ob, rew, done, info = self.env.step(self.curac)
             totrew += rew
+            audio_buffer.append(env.em.get_audio())
             if done: break
-        return ob, totrew, done, info
+        return ob, totrew, done, info, audio_buffer if audio else ob, totrew, done, info
 
     def seed(self, s):
         self.rng.seed(s)
+
+
+#class RetroAudio(gym.Wrapper):
