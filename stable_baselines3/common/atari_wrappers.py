@@ -296,4 +296,97 @@ class StochasticFrameSkip(gym.Wrapper):
         self.rng.seed(s)
 
 
-#class RetroAudio(gym.Wrapper):
+class RetroSound(gym.Wrapper):
+    """
+    Modify observation space and add audio to it on each step.
+
+    :param env: gym environment
+    :param frameskip: the maximum frameskip of the environment. 1 is equivalent to no frameskipping.
+    """
+
+    def __init__(self, env, frameskip=1):
+        super().__init__(env)
+        current_obs_space = self.observation_space
+
+        assert frameskip > 0
+        # Find the length of momentary audio and multiply it by the number of frames skipped
+        # as we need audio from the skipped frames too.
+        self.single_audio_len = len(self.env.em.get_audio())
+        self.frameskip = frameskip
+        self.audio_len = self.single_audio_len * self.frameskip
+
+        audio_shape = [self.audio_len,2]
+        sound_high = [[32767,32767]] * self.audio_len
+        sound_low = [[-32767,-32767]] * self.audio_len
+
+        # Create new observation space
+        if isinstance(self.observation_space, spaces.Dict):
+            new_dict = {}
+            for space_name, space in self.observation_space.spaces.items():
+                new_dict[space_name] = space
+            new_dict['sound'] = gym.spaces.Box(
+                low=np.array(sound_low, dtype=np.int16), high=np.array(sound_high, dtype=np.int16),
+            )
+            self.observation_space = gym.spaces.Dict(new_dict) 
+        else:
+            self.observation_space = gym.spaces.Dict({
+                'obs': current_obs_space,
+                'sound': gym.spaces.Box(
+                    low=np.array(sound_low, dtype=np.int16), high=np.array(sound_high, dtype=np.int16),
+                ),
+            })
+
+    def __process_audio(self, audio):
+        # If the audio is smaller than the observation space and frameskip exists, fill the missing parts with 0's.
+        # This can happen if minimum frameskip is 2 and maximum is 4. Then if random frameskip is chosen
+        # at step n, the audio can be made for 2 frameskips even though observation space is designed for more.
+        if self.observation_space['sound'].shape[0] > len(audio) and self.frameskip > 1:
+            # Pad the audio with 0's
+            audio_shape = np.shape(audio)
+            padded_audio = np.zeros(self.observation_space['sound'].shape)
+            padded_audio[:audio_shape[0],:audio_shape[1]] = audio
+            audio = padded_audio
+        elif self.observation_space['sound'].shape[0] > len(audio):
+            raise Exception('Length of audio should not be smaller than the audio in observation space')
+            audio = np.zeros(self.observation_space['sound'].shape)
+        elif self.observation_space['sound'].shape[0] < len(audio):
+            raise Exception('Length of audio should not be larger than the audio in observation space')
+            audio = np.zeros(self.observation_space['sound'].shape)
+        return audio
+
+    def reset(self, **kwargs):
+        base_observation = self.env.reset(**kwargs)
+        audio = self.env.em.get_audio()
+        audio = self.process_audio(audio)
+
+        if isinstance(base_observation, dict):
+            base_observation['sound'] = audio
+            return base_observation
+        else:
+            obs_dict = {
+                'obs':base_observation,
+                # set to zero and run baselines
+                'sound':audio
+            }
+            return obs_dict
+
+    def step(self, action):
+        # If there is a frameskip, the StochasticFrameskip wrapper will return the audio out of the buffer
+        if self.frameskip > 1:
+            obs, rew, done, info, audio = self.env.step(action)
+        else: 
+            obs, rew, done, info = self.env.step(action)
+            audio = self.env.em.get_audio
+
+        audio = self.process_audio(audio)
+
+        if isinstance(obs, dict):
+            obs['sound'] = audio
+            return obs, rew, done, info
+
+        else:
+            obs_dict = {
+                'obs':obs,
+                'sound':audio
+            }
+            return obs_dict, rew, done, info
