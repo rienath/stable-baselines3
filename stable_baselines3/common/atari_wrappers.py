@@ -269,7 +269,7 @@ class StochasticFrameSkip(gym.Wrapper):
     def step(self, ac):
         done = False
         totrew = 0
-        if audio: audio_buffer = list()
+        if self.audio: audio_buffer = list()
 
         n = self.rng.randint(self.step_min, self.step_max + 1)
         for i in range(n):
@@ -288,9 +288,10 @@ class StochasticFrameSkip(gym.Wrapper):
             else:
                 ob, rew, done, info = self.env.step(self.curac)
             totrew += rew
-            audio_buffer.append(env.em.get_audio())
+            audio_buffer.append(self.env.em.get_audio())
             if done: break
-        return ob, totrew, done, info, audio_buffer if audio else ob, totrew, done, info
+        if self.audio: return ob, totrew, done, info, audio_buffer 
+        else: return ob, totrew, done, info
 
     def seed(self, s):
         self.rng.seed(s)
@@ -357,7 +358,7 @@ class RetroSound(gym.Wrapper):
     def reset(self, **kwargs):
         base_observation = self.env.reset(**kwargs)
         audio = self.env.em.get_audio()
-        audio = self.process_audio(audio)
+        audio = self.__process_audio(audio)
 
         if isinstance(base_observation, dict):
             base_observation['sound'] = audio
@@ -378,7 +379,7 @@ class RetroSound(gym.Wrapper):
             obs, rew, done, info = self.env.step(action)
             audio = self.env.em.get_audio
 
-        audio = self.process_audio(audio)
+        audio = self.__process_audio(audio)
 
         if isinstance(obs, dict):
             obs['sound'] = audio
