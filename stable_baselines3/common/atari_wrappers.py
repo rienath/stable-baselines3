@@ -50,10 +50,12 @@ class FireResetEnv(gym.Wrapper):
     :param env: the environment to wrap
     """
 
-    def __init__(self, env: gym.Env):
+    def __init__(self, env: gym.Env, retro: bool = False):
         gym.Wrapper.__init__(self, env)
-        assert env.unwrapped.get_action_meanings()[1] == "FIRE"
-        assert len(env.unwrapped.get_action_meanings()) >= 3
+        # Retro does not have action meanings
+        if not retro:
+            assert env.unwrapped.get_action_meanings()[1] == "FIRE"
+            assert len(env.unwrapped.get_action_meanings()) >= 3
 
     def reset(self, **kwargs) -> np.ndarray:
         self.env.reset(**kwargs)
