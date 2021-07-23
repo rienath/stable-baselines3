@@ -268,8 +268,8 @@ def make_retro_env(
     env = Monitor(env, filename=monitor_path, **monitor_kwargs)
 
     # Add wrappers to skip frames and limit env time.
-    env = StochasticFrameSkip(env, frameskip_min, frameskip_max, repeat_action_probability, audio)
     env = WarpFrame(env, width=84, height=84)
+    env = StochasticFrameSkip(env, frameskip_min, frameskip_max, repeat_action_probability, audio)
     if audio:
         env = RetroSound(env, frameskip_max)
     env = gym.wrappers.TimeLimit(env, max_episode_steps)
