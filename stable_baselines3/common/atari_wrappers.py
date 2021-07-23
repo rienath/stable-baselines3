@@ -250,7 +250,7 @@ class AtariWrapper(gym.Wrapper):
         super(AtariWrapper, self).__init__(env)
 
 
-class StochasticFrameSkip(gym.Wrapper):
+class StochasticFrameskip(gym.Wrapper):
     """
     Should be used before other wrappers to make sure that no unnecessary computation is done with skipped frames.
     The only exception is WarpFrame, which should happen be used before or it will prevent tight
@@ -292,7 +292,7 @@ class StochasticFrameSkip(gym.Wrapper):
             else:
                 ob, rew, done, info = self.env.step(self.curac)
             totrew += rew
-            audio_buffer.append(self.env.em.get_audio())
+            if self.audio: audio_buffer.append(self.env.em.get_audio())
             if done: break
         if self.audio: 
             # Instead of having 3D array with frame number as 3rd dimension,
