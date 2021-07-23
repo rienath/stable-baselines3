@@ -250,7 +250,9 @@ class AtariWrapper(gym.Wrapper):
 
 class StochasticFrameSkip(gym.Wrapper):
     """
-    Must be used before other wrappers to make sure that no unnecessary computation is done with skipped frames.
+    Should be used before other wrappers to make sure that no unnecessary computation is done with skipped frames.
+    The only exception is WarpFrame, which should happen be used before or it will prevent tight
+    StochasticFrameskip and RetroSound integration.
     """
     def __init__(self, env, step_min, step_max, stickprob, audio=False):
         gym.Wrapper.__init__(self, env)
