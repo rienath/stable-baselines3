@@ -290,8 +290,14 @@ class StochasticFrameSkip(gym.Wrapper):
             totrew += rew
             audio_buffer.append(self.env.em.get_audio())
             if done: break
-        if self.audio: return ob, totrew, done, info, audio_buffer 
-        else: return ob, totrew, done, info
+        if self.audio: 
+            # Instead of having 3D array with frame number as 3rd dimension,
+            # reshape into 2D array with continuous multiframe audio
+            audio_buffer = np.array(audio_buffer)
+            audio_buffer = audio_buffer.reshape(-1,2)
+            return ob, totrew, done, info, audio_buffer
+        else: 
+            return ob, totrew, done, info
 
     def seed(self, s):
         self.rng.seed(s)
