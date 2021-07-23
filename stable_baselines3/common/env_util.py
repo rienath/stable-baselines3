@@ -172,7 +172,7 @@ def make_retro_env(
     screen_size: int = 84,
     terminal_on_life_loss: bool = True,
     clip_reward: bool = True,
-    fire_at_the_start: bool = False,
+    fire_at_start: bool = False,
     audio: bool = False
 ) -> VecEnv:
     """
@@ -273,8 +273,8 @@ def make_retro_env(
     if audio:
         env = RetroSound(env, frameskip_max)
     env = gym.wrappers.TimeLimit(env, max_episode_steps)
-    if fire_at_the_start:
-        env = FireResetEnv(env)
+    if fire_at_start:
+        env = FireResetEnv(env, retro=True)
 
     # Does not work with retro
     #if terminal_on_life_loss:
