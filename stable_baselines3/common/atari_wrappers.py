@@ -411,7 +411,7 @@ class FFTWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, env)
 
         assert isinstance(self.observation_space, spaces.Dict)
-        assert self.observation_space.has_key('sound')
+        assert 'sound' in self.observation_space.spaces 
         self.audio_len = self.observation_space['sound'].shape[0]
         self.fft_len = self.audio_len // 2
 
@@ -428,10 +428,10 @@ class FFTWrapper(gym.Wrapper):
         self.observation_space = gym.spaces.Dict(new_dict) 
 
     @lru_cache(maxsize=128)
-    def __hamming(num):
+    def __hamming(self, num):
         return np.hamming(num)
 
-    def __fft(audio):
+    def __fft(self, audio):
         """
         FFT 1D vector.
         """
@@ -446,7 +446,7 @@ class FFTWrapper(gym.Wrapper):
         log_magnitudes = np.log(magnitudes + 1e-5)
         return log_magnitudes
 
-    def __fft_two_channels(audio):
+    def __fft_two_channels(self, audio):
         """
         FFT the 2 channel audio.
         """
@@ -456,9 +456,9 @@ class FFTWrapper(gym.Wrapper):
         ear_two = transposed_audio[1]
         # FFT on both ears
         ear_one_fft = self.__fft(ear_one)
-        ear_one_fft = self.__fft(ear_two)
+        ear_two_fft = self.__fft(ear_two)
         # Get it to initial format
-        fft_audio = np.transpose([ear_one, ear_two])
+        fft_audio = np.transpose([ear_one_fft, ear_two_fft])
         return fft_audio
 
 
@@ -469,7 +469,7 @@ class FFTWrapper(gym.Wrapper):
         return obs
 
     def step(self, ac):
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, done, info = self.env.step(ac)
         fft_audio = self.__fft_two_channels(obs['sound'])
         obs['sound'] = fft_audio
         return obs, rew, done, info

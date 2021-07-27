@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 import gym
 import retro
 
-from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound
+from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound, FFTWrapper
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 
@@ -272,6 +272,7 @@ def make_retro_env(
     env = StochasticFrameskip(env, frameskip_min, frameskip_max, repeat_action_probability, audio)
     if audio:
         env = RetroSound(env, frameskip_max)
+        env = FFTWrapper(env)
     env = gym.wrappers.TimeLimit(env, max_episode_steps)
     if fire_at_start:
         env = FireResetEnv(env, retro=True)
