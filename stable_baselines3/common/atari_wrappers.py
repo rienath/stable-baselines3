@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 from gym import spaces
+from functools import lru_cache
 
 try:
     import cv2  # pytype:disable=import-error
@@ -316,7 +317,7 @@ class RetroSound(gym.Wrapper):
     """
 
     def __init__(self, env, frameskip=1):
-        super().__init__(env)
+        gym.Wrapper.__init__(self, env)
         current_obs_space = self.observation_space
 
         assert frameskip > 0
@@ -376,7 +377,6 @@ class RetroSound(gym.Wrapper):
         else:
             obs_dict = {
                 'obs':base_observation,
-                # set to zero and run baselines
                 'sound':audio
             }
             return obs_dict
@@ -401,3 +401,75 @@ class RetroSound(gym.Wrapper):
                 'sound':audio
             }
             return obs_dict, rew, done, info
+
+
+class FFTWrapper(gym.Wrapper):
+    """
+    Only works with dual channel audio.
+    """
+    def __init__(self, env):
+        gym.Wrapper.__init__(self, env)
+
+        assert isinstance(self.observation_space, spaces.Dict)
+        assert self.observation_space.has_key('sound')
+        self.audio_len = self.observation_space['sound'].shape[0]
+        self.fft_len = self.audio_len // 2
+
+        fft_high = [[32767,32767]] * self.fft_len
+        fft_low = [[-32767,-32767]] * self.fft_len
+
+        # Make new observation_space
+        new_dict = {}
+        for space_name, space in self.observation_space.spaces.items():
+            new_dict[space_name] = space
+        new_dict['sound'] = gym.spaces.Box(
+            low=np.array(fft_low, dtype=np.int16), high=np.array(fft_high, dtype=np.int16),
+        )
+        self.observation_space = gym.spaces.Dict(new_dict) 
+
+    @lru_cache(maxsize=128)
+    def __hamming(num):
+        return np.hamming(num)
+
+    def __fft(audio):
+        """
+        FFT 1D vector.
+        """
+        audio_len = len(audio)
+        audio = self.__hamming(audio_len) * audio
+        fourier = np.fft.fft(audio)
+        # Take only the magnitudes of different frequencies
+        magnitudes = np.abs(fourier)
+        # Last half of the magnitude are mirror of first half
+        magnitudes = magnitudes[:audio_len // 2]
+        # Take logarithm, as these magnitudes may be very large, and networks do not enjoy large values
+        log_magnitudes = np.log(magnitudes + 1e-5)
+        return log_magnitudes
+
+    def __fft_two_channels(audio):
+        """
+        FFT the 2 channel audio.
+        """
+        # Split the signal into left and right ears
+        transposed_audio = np.transpose(audio)
+        ear_one = transposed_audio[0]
+        ear_two = transposed_audio[1]
+        # FFT on both ears
+        ear_one_fft = self.__fft(ear_one)
+        ear_one_fft = self.__fft(ear_two)
+        # Get it to initial format
+        fft_audio = np.transpose([ear_one, ear_two])
+        return fft_audio
+
+
+    def reset(self, **kwargs):
+        obs = self.env.reset(**kwargs)
+        fft_audio = self.__fft_two_channels(obs['sound'])
+        obs['sound'] = fft_audio
+        return obs
+
+    def step(self, ac):
+        obs, rew, done, info = self.env.step(action)
+        fft_audio = self.__fft_two_channels(obs['sound'])
+        obs['sound'] = fft_audio
+        return obs, rew, done, info
