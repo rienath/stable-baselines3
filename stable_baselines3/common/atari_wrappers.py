@@ -415,8 +415,13 @@ class FFTWrapper(gym.Wrapper):
         self.audio_len = self.observation_space['sound'].shape[0]
         self.fft_len = self.audio_len // 2
 
-        fft_high = [[32767,32767]] * self.fft_len
-        fft_low = [[-32767,-32767]] * self.fft_len
+        # The maximum possible number in fft is ln(32767*audio_len*frameskip). 
+        # Since audio_len in retro is 524, we can try the calculation with the smallest frameskip (1) 
+        # and an insanely large framskip that we will never encounter (100).
+        # We will get 16.7 and 21.3. Therefore, it is a good guess that we will never go beyond 21.3.
+        # The minimum number we can possibly have is ln(1e-5), which is -11.5... Round it further down.
+        fft_high = [[21.3, 21.3]] * self.fft_len
+        fft_low = [[-11.6, -11.6]] * self.fft_len
 
         # Make new observation_space
         new_dict = {}
