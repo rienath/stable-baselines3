@@ -267,13 +267,20 @@ def make_retro_env(
         os.makedirs(monitor_dir, exist_ok=True)
     env = Monitor(env, filename=monitor_path, **monitor_kwargs)
 
-    # Add wrappers to skip frames and limit env time.
+    # Add wrappers
     env = WarpFrame(env, width=84, height=84)
     env = StochasticFrameskip(env, frameskip_min, frameskip_max, repeat_action_probability, audio)
     if audio:
         env = RetroSound(env, frameskip_max)
         env = FFTWrapper(env)
     env = gym.wrappers.TimeLimit(env, max_episode_steps)
+    if terminal_on_life_loss:
+        try:
+            # If 'lives' parameter does not exist, we will get an error before applying a wrapper
+            env.unwrapped.data['lives']
+            env = EpisodicLifeEnv(env, retro=True)
+        except:
+            print('terminal_on_life_loss cannot be True as this environment has no lives. EpisodicLifeEnv wrapper cancelled.')
     if fire_at_start:
         env = FireResetEnv(env, retro=True)
 

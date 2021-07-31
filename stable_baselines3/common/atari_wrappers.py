@@ -77,17 +77,23 @@ class EpisodicLifeEnv(gym.Wrapper):
     :param env: the environment to wrap
     """
 
-    def __init__(self, env: gym.Env):
+    def __init__(self, env: gym.Env, retro: bool = False):
         gym.Wrapper.__init__(self, env)
         self.lives = 0
         self.was_real_done = True
+        # Gym and retro have different ways of getting lives.
+        if retro:
+            self.get_lives = lambda: self.env.unwrapped.data['lives']
+        else:
+            self.get_lives = lambda: self.env.unwrapped.ale.lives()
+
 
     def step(self, action: int) -> GymStepReturn:
         obs, reward, done, info = self.env.step(action)
         self.was_real_done = done
         # check current lives, make loss of life terminal,
         # then update lives to handle bonus lives
-        lives = self.env.unwrapped.ale.lives()
+        lives = self.get_lives()
         if 0 < lives < self.lives:
             # for Qbert sometimes we stay in lives == 0 condtion for a few frames
             # so its important to keep lives > 0, so that we only reset once
@@ -110,9 +116,8 @@ class EpisodicLifeEnv(gym.Wrapper):
         else:
             # no-op step to advance from terminal/lost life state
             obs, _, _, _ = self.env.step(0)
-        self.lives = self.env.unwrapped.ale.lives()
+        self.lives = self.get_lives()
         return obs
-
 
 class MaxAndSkipEnv(gym.Wrapper):
     """
