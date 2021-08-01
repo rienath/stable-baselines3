@@ -43,8 +43,6 @@ def make_vec_env(
     start_index: int = 0,
     monitor_dir: Optional[str] = None,
     wrapper_class: Optional[Callable[[gym.Env], gym.Env]] = None,
-    retro: bool = False,
-    retro_obs_type: Optional[retro.Observations] = retro.Observations.IMAGE,
     env_kwargs: Optional[Dict[str, Any]] = None,
     vec_env_cls: Optional[Type[Union[DummyVecEnv, SubprocVecEnv]]] = None,
     vec_env_kwargs: Optional[Dict[str, Any]] = None,
@@ -80,10 +78,7 @@ def make_vec_env(
     def make_env(rank):
         def _init():
             if isinstance(env_id, str):
-                env = gym.make(env_id, **env_kwargs) if not retro_bool else retro.make(
-                    game=env_id, 
-                    use_restricted_actions=retro.Actions.DISCRETE, 
-                    obs_type=retro_obs_type)
+                env = gym.make(env_id, **env_kwargs)
             else:
                 env = env_id(**env_kwargs)
             if seed is not None:
@@ -284,9 +279,6 @@ def make_retro_env(
     if fire_at_start:
         env = FireResetEnv(env, retro=True)
 
-    # Does not work with retro
-    #if terminal_on_life_loss:
-    #    env = EpisodicLifeEnv(env)
     if clip_reward:
         env = ClipRewardEnv(env)
     
