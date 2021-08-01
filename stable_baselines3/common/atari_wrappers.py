@@ -483,3 +483,33 @@ class FFTWrapper(gym.Wrapper):
         fft_audio = self.__fft_two_channels(obs['sound'])
         obs['sound'] = fft_audio
         return obs, rew, done, info
+
+
+class Discretizer(gym.ActionWrapper):
+    """
+    Wrap a gym environment and make it use discrete actions.
+    :param buttons: ordered list of buttons, corresponding to each dimension of the MultiBinary action space
+    :param combos: ordered list of lists of valid button combinations
+    """
+
+    def __init__(self, env, buttons, combos):
+        gym.ActionWrapper.__init__(self, env)
+        assert isinstance(env.action_space, gym.spaces.MultiBinary)
+        self._decode_discrete_action = []
+        for combo in combos:
+            arr = np.array([False] * env.action_space.n)
+            for button in combo:
+                arr[buttons.index(button)] = True
+            self._decode_discrete_action.append(arr)
+
+        self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action))
+
+    def action(self, act):
+        return self._decode_discrete_action[act].copy()
+
+
+def BreakoutDiscretizer(env):
+    """
+    Discretize Retro Pong-Atari2600 environment
+    """
+    return Discretizer(env, buttons=env.unwrapped.buttons, combos=[[None], ['BUTTON'], ['LEFT'], ['RIGHT']])
