@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 import gym
 import retro
 
-from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound, FFTWrapper BreakoutDiscretizer
+from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound, FFTWrapper, BreakoutDiscretizer
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 
@@ -249,7 +249,7 @@ def make_retro_env(
 
     # The actions must be discrete, but are not by default.
     env = retro.make(game=env_id, obs_type=obs_type)
-    env = BreakoutDiscretizer(env)
+    if env_id[:-10] == 'Breakout': env = BreakoutDiscretizer(env)
 
     if seed is not None:
         env.seed(seed)
