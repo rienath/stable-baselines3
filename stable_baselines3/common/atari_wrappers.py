@@ -392,7 +392,7 @@ class RetroSound(gym.Wrapper):
             obs, rew, done, info, audio = self.env.step(action)
         else: 
             obs, rew, done, info = self.env.step(action)
-            audio = self.env.em.get_audio
+            audio = self.env.em.get_audio()
 
         audio = self.__process_audio(audio)
 
