@@ -248,8 +248,14 @@ def make_retro_env(
     env_id, obs_type, repeat_action_probability, max_episode_steps, frameskip_min, frameskip_max = parse_env_name(env_id)
 
     # The actions must be discrete, but are not by default.
-    env = retro.make(game=env_id, obs_type=obs_type)
-    if env_id[:-10] == 'Breakout': env = BreakoutDiscretizer(env)
+    # If we have a a Discretizer for this environment, make an environment with multibinary
+    # actions and then discretize it to correct discrete actions.
+    # Otherwise, create an environment with default discrete actions (buttons).
+    if env_id[:-10] == 'Breakout': 
+        env = retro.make(game=env_id, obs_type=obs_type)
+        env = BreakoutDiscretizer(env)
+    else:
+        env = retro.make(game=env_id, use_restricted_actions=retro.Actions.DISCRETE, obs_type=obs_type)
 
     if seed is not None:
         env.seed(seed)
