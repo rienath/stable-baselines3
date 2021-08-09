@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 import gym
 import retro
 
-from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound, FFTWrapper, BreakoutDiscretizer
+from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound, FFTWrapper, BreakoutDiscretizer, CentipedeDiscretizer, VideoPinballDiscretizer
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 
@@ -254,6 +254,13 @@ def make_retro_env(
     if env_id[:-10] == 'Breakout': 
         env = retro.make(game=env_id, obs_type=obs_type)
         env = BreakoutDiscretizer(env)
+    elif env_id[:-10] == 'Centipede': 
+        env = retro.make(game=env_id, obs_type=obs_type)
+        env = CentipedeDiscretizer(env)
+    elif env_id[:-10] == 'VideoPinball': 
+        env = retro.make(game=env_id, obs_type=obs_type)
+        env = VideoPinballDiscretizer(env)
+    # Keep adding the environments needed.
     else:
         env = retro.make(game=env_id, use_restricted_actions=retro.Actions.DISCRETE, obs_type=obs_type)
 

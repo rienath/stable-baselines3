@@ -510,6 +510,26 @@ class Discretizer(gym.ActionWrapper):
 
 def BreakoutDiscretizer(env):
     """
-    Discretize Retro Pong-Atari2600 environment
+    Discretize Retro Breakout-Atari2600 environment
     """
     return Discretizer(env, buttons=env.unwrapped.buttons, combos=[[None], ['BUTTON'], ['LEFT'], ['RIGHT']])
+
+
+def CentipedeDiscretizer(env):
+    """
+    Discretize Retro Centipede-Atari2600 environment
+    """
+    combos = [[None], ['BUTTON'], ['UP'], ['RIGHT'],
+              ['LEFT'], ['DOWN'], ['UP', 'RIGHT'], ['UP', 'LEFT'],
+              ['DOWN', 'RIGHT'], ['DOWN', 'LEFT'], ['UP', 'BUTTON'], ['RIGHT', 'BUTTON'],
+              ['LEFT', 'BUTTON'], ['DOWN', 'BUTTON'], ['UP', 'RIGHT', 'BUTTON'], ['UP', 'LEFT', 'BUTTON'],
+              ['DOWN', 'RIGHT', 'BUTTON'], ['DOWN', 'LEFT', 'BUTTON']]
+    return Discretizer(env, buttons=env.unwrapped.buttons, combos=combos)
+
+
+def VideoPinballDiscretizer(env):
+    """
+    Discretize Retro Pong-Atari2600 environment
+    """
+    return Discretizer(env, buttons=env.unwrapped.buttons, combos=  [[None], ['BUTTON'], ['LEFT'],
+                                                                    ['RIGHT'], ['UP'], ['DOWN']])
