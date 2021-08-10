@@ -27,6 +27,7 @@ class NoopResetEnv(gym.Wrapper):
         self.noop_max = noop_max
         self.override_num_noops = None
         self.noop_action = 0
+        self.rng = np.random.RandomState()
         assert env.unwrapped.get_action_meanings()[0] == "NOOP"
 
     def reset(self, **kwargs) -> np.ndarray:
@@ -34,7 +35,7 @@ class NoopResetEnv(gym.Wrapper):
         if self.override_num_noops is not None:
             noops = self.override_num_noops
         else:
-            noops = self.unwrapped.np_random.randint(1, self.noop_max + 1)
+            noops = self.rng.randint(1, self.noop_max + 1)
         assert noops > 0
         obs = np.zeros(0)
         for _ in range(noops):
