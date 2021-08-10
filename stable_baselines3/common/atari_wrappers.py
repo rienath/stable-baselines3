@@ -43,6 +43,10 @@ class NoopResetEnv(gym.Wrapper):
                 obs = self.env.reset(**kwargs)
         return obs
 
+    def seed(self, s):
+        self.rng.seed(s)
+        self.env.seed(s)
+
 
 class FireResetEnv(gym.Wrapper):
     """
