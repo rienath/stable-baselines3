@@ -315,6 +315,7 @@ class StochasticFrameskip(gym.Wrapper):
 
     def seed(self, s):
         self.rng.seed(s)
+        self.env.seed(s)
 
 
 class RetroSound(gym.Wrapper):
