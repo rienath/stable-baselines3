@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 import gym
 import retro
 
-from stable_baselines3.common.atari_wrappers import AtariWrapper, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound, FFTWrapper, BreakoutDiscretizer, CentipedeDiscretizer, VideoPinballDiscretizer
+from stable_baselines3.common.atari_wrappers import AtariWrapper, NoopResetEnv, EpisodicLifeEnv, ClipRewardEnv, StochasticFrameskip, WarpFrame, FireResetEnv, RetroSound, FFTWrapper, BreakoutDiscretizer, CentipedeDiscretizer, VideoPinballDiscretizer
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 
@@ -160,6 +160,7 @@ def make_retro_env(
     env_id: Union[str, Type[gym.Env]],
     seed: Optional[int] = None,
     start_index: int = 0,
+    noop_max: int = 30,
     monitor_dir: Optional[str] = None,
     monitor_kwargs: Optional[Dict[str, Any]] = None,
     wrapper_kwargs: Optional[Dict[str, Any]] = None,
@@ -277,6 +278,7 @@ def make_retro_env(
     env = Monitor(env, filename=monitor_path, **monitor_kwargs)
 
     # Add wrappers
+    env = NoopResetEnv(env, noop_max=noop_max, retro=True)
     env = WarpFrame(env, width=84, height=84)
     env = StochasticFrameskip(env, frameskip_min, frameskip_max, repeat_action_probability, audio)
     if audio:

@@ -22,12 +22,13 @@ class NoopResetEnv(gym.Wrapper):
     :param noop_max: the maximum value of no-ops to run
     """
 
-    def __init__(self, env: gym.Env, noop_max: int = 30):
+    def __init__(self, env: gym.Env, noop_max: int = 30, retro: bool = False):
         gym.Wrapper.__init__(self, env)
         self.noop_max = noop_max
         self.override_num_noops = None
         self.noop_action = 0
-        assert env.unwrapped.get_action_meanings()[0] == "NOOP"
+        if not retro:
+            assert env.unwrapped.get_action_meanings()[0] == "NOOP"
 
     def reset(self, **kwargs) -> np.ndarray:
         self.env.reset(**kwargs)
