@@ -531,7 +531,7 @@ def CentipedeDiscretizer(env):
 
 def VideoPinballDiscretizer(env):
     """
-    Discretize Retro Pong-Atari2600 environment
+    Discretize Retro VideoPinball-Atari2600 environment
     """
     return Discretizer(env, buttons=env.unwrapped.buttons, combos=  [[None], ['BUTTON'], ['LEFT'],
                                                                     ['RIGHT'], ['UP'], ['DOWN']])
