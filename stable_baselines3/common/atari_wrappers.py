@@ -262,6 +262,7 @@ class StochasticFrameskip(gym.Wrapper):
     Should be used before other wrappers to make sure that no unnecessary computation is done with skipped frames.
     The only exception is WarpFrame, which should happen be used before or it will prevent tight
     StochasticFrameskip and RetroSound integration.
+    Sticky actions as in Machado et al., 2017, random frameskips as in Brockman et al., 2016.
     """
     def __init__(self, env, step_min, step_max, stickprob, audio=False):
         gym.Wrapper.__init__(self, env)
@@ -280,20 +281,21 @@ class StochasticFrameskip(gym.Wrapper):
     def step(self, ac):
         done = False
         totrew = 0
+        # Indicates whether the actual action has been used already. False while sticky actions are taking place
+        real_action_used = False
         if self.audio: audio_buffer = list()
-
+        # Choose random frameskip. Will stay constant if min and max are equal.
         n = self.rng.randint(self.step_min, self.step_max + 1)
         for i in range(n):
             # First step after reset, use action
             if self.curac is None:
                 self.curac = ac
-            # First step not after reset, take same action as in last with stickprob probability or new action if not
-            elif i==0:
+            # Steps not after reset.
+            # Take previous action if real action has not been used yet with stickprob probability.
+            elif not real_action_used:
                 if self.rng.rand() > self.stickprob:
                     self.curac = ac
-            # Second step, new action definitely kicks in
-            elif i==1:
-                self.curac = ac
+                    real_action_used = True
             if self.supports_want_render and i<self.n-1:
                 ob, rew, done, info = self.env.step(self.curac, want_render=False)
             else:
