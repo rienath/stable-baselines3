@@ -160,7 +160,7 @@ def make_retro_env(
     env_id: Union[str, Type[gym.Env]],
     seed: Optional[int] = None,
     start_index: int = 0,
-    noop_max: int = 30,
+    noop_max: int = 0,
     monitor_dir: Optional[str] = None,
     monitor_kwargs: Optional[Dict[str, Any]] = None,
     wrapper_kwargs: Optional[Dict[str, Any]] = None,
@@ -278,7 +278,8 @@ def make_retro_env(
     env = Monitor(env, filename=monitor_path, **monitor_kwargs)
 
     # Add wrappers
-    env = NoopResetEnv(env, noop_max=noop_max, retro=True)
+    if noop_max > 0:
+        env = NoopResetEnv(env, noop_max=noop_max, retro=True)
     env = WarpFrame(env, width=84, height=84)
     env = StochasticFrameskip(env, frameskip_min, frameskip_max, repeat_action_probability, audio)
     if audio:

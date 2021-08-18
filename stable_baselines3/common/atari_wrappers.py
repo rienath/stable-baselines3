@@ -15,7 +15,7 @@ from stable_baselines3.common.type_aliases import GymObs, GymStepReturn
 
 class NoopResetEnv(gym.Wrapper):
     """
-    Sample initial states by taking random number of no-ops on reset.
+    Sample initial states by taking random number of no-ops on reset (Mnih et al., 2015).
     No-op is assumed to be action 0.
 
     :param env: the environment to wrap
